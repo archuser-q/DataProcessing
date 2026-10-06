@@ -1,66 +1,73 @@
 # Weather ETL Pipeline (Open-Meteo -> PostgreSQL)
 
-ETL pipeline co ban: lay du lieu thoi tiet theo gio (7 ngay) cua 3 thanh pho tu
-Open-Meteo API, lam sach/bien doi bang Python, nap vao PostgreSQL bang upsert.
+A basic ETL pipeline that retrieves hourly weather data (7-day forecast) for 3 cities from the Open-Meteo API, cleans and transforms the data with Python, and loads it into PostgreSQL using upsert.
 
-## Kien truc
+## Architecture
 
-    Open-Meteo API --(requests)--> transform() --(upsert)--> PostgreSQL (weather_hourly)
+Open-Meteo API --(requests)--> transform() --(upsert)--> PostgreSQL (weather_hourly)
 
-- Extract: `extract()` goi API, `raise_for_status()` de bat loi HTTP
-- Transform: flatten JSON, bo dong thieu gia tri, them `forecast_date`, `forecast_hour`, `is_rainy`, `ingested_at`
-- Load: `INSERT ... ON CONFLICT DO UPDATE` voi khoa chinh (city, forecast_time) -> idempotent
+- **Extract:** `extract()` calls the API and uses `raise_for_status()` to catch HTTP errors.
+- **Transform:** Flattens the JSON response, removes rows with missing values, and adds `forecast_date`, `forecast_hour`, `is_rainy`, and `ingested_at`.
+- **Load:** Uses `INSERT ... ON CONFLICT DO UPDATE` with a composite primary key `(city, forecast_time)` to ensure idempotency.
 
-## Chuan bi database
+## Database Setup
 
-Tao database `weather_etl` (bang `weather_hourly` se duoc tao tu dong).
+Create a database named `weather_etl` (`weather_hourly` will be created automatically).
 
-- pgAdmin: chuot phai Databases -> Create -> Database -> `weather_etl`
-- hoac psql: `CREATE DATABASE weather_etl;`
+- **pgAdmin:** Right-click **Databases** -> **Create** -> **Database** -> `weather_etl`
+- **psql:**
+  ```sql
+  CREATE DATABASE weather_etl;
+  ```
 
-## Cau hinh
+## Configuration
 
-Pipeline doc ket noi tu bien moi truong (mac dinh trong ngoac):
+The pipeline reads the database connection settings from environment variables (defaults shown in parentheses):
 
-| Bien         | Mac dinh      |
-|--------------|---------------|
-| `PGHOST`     | `localhost`   |
-| `PGPORT`     | `5432`        |
+| Variable | Default |
+|----------|---------|
+| `PGHOST` | `localhost` |
+| `PGPORT` | `5432` |
 | `PGDATABASE` | `weather_etl` |
-| `PGUSER`     | `postgres`    |
-| `PGPASSWORD` | (rong)        |
+| `PGUSER` | `postgres` |
+| `PGPASSWORD` | (empty) |
 
-## Chay local (Linux/macOS)
+## Run Locally (Linux/macOS)
 
-    python3 -m venv .venv
-    source .venv/bin/activate
-    pip install -r requirements.txt
-    export PGPASSWORD="mat_khau_cua_ban"
-    python etl_pipeline.py
+```bash
+python3 -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+export PGPASSWORD="your_password"
+python etl_pipeline.py
+```
 
-## Chay local (Windows PowerShell)
+## Run Locally (Windows PowerShell)
 
-    python -m venv .venv
-    .\.venv\Scripts\python.exe -m pip install -r requirements.txt
-    $env:PGPASSWORD = "mat_khau_cua_ban"
-    .\.venv\Scripts\python.exe etl_pipeline.py
+```powershell
+python -m venv .venv
+.\.venv\Scripts\python.exe -m pip install -r requirements.txt
+$env:PGPASSWORD = "your_password"
+.\.venv\Scripts\python.exe etl_pipeline.py
+```
 
-## Chay bang Docker
+## Run with Docker
 
-Container ket noi toi PostgreSQL dang chay tren may host:
+The container connects to PostgreSQL running on the host machine:
 
-    docker build -t weather-etl .
-    docker run --rm \
-      --add-host=host.docker.internal:host-gateway \
-      -e PGHOST=host.docker.internal \
-      -e PGPASSWORD="mat_khau_cua_ban" \
-      weather-etl
+```bash
+docker build -t weather-etl .
+docker run --rm \
+  --add-host=host.docker.internal:host-gateway \
+  -e PGHOST=host.docker.internal \
+  -e PGPASSWORD="your_password" \
+  weather-etl
+```
 
-## Query du lieu
+## Query the Data
 
-- pgAdmin: mo Query Tool tren database `weather_etl`, paste noi dung `sql/analysis.sql`
-- hoac psql: `psql -U postgres -d weather_etl -f sql/analysis.sql`
-
-## Len lich (cron, Linux)
-
-    0 * * * * cd /path/to/weather-etl && PGPASSWORD="mat_khau_cua_ban" .venv/bin/python etl_pipeline.py >> etl.log 2>&1
+- **pgAdmin:** Open **Query Tool** for the `weather_etl` database and paste the contents of `sql/analysis.sql`.
+- **psql:**
+  ```bash
+  psql -U postgres -d weather_etl -f sql/analysis.sql
+  ```
