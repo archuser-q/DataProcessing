@@ -1,0 +1,6 @@
+SQLAlchemy>=2.0
+psycopg[binary]>=3.2
+python-dotenv>=1.0
+pandas>=2.2
+pyarrow>=17
+duckdb>=1.1
