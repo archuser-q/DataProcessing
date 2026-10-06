@@ -143,7 +143,6 @@ STEPS: list[tuple[str, str]] = [
         """,
     ),
     (
-        # Lịch đủ mọi ngày từ đơn đầu tiên tới đơn cuối cùng, kể cả ngày không có đơn
         "dim_date",
         """
         SELECT
@@ -187,11 +186,11 @@ def run_transform(run_id: str | None = None) -> dict:
     run_id = run_id or latest_run_id()
     started = time.perf_counter()
     out_dir = settings.transformed_dir / f"run={run_id}"
-    out_dir.mkdir(parents=True, exist_ok=True)
 
-    con = duckdb.connect()  # chạy trong bộ nhớ, không cần server
+    con = duckdb.connect() 
     try:
         _register_raw(con, run_id)
+        out_dir.mkdir(parents=True, exist_ok=True)
         review_visible = "NOT is_hidden" if _has_column(con, "raw_reviews", "is_hidden") else "TRUE"
 
         outputs = {}
