@@ -17,6 +17,10 @@ class Settings:
         return self.data_dir / "raw"
 
     @property
+    def transformed_dir(self) -> Path:
+        return self.data_dir / "transformed"
+
+    @property
     def warehouse_path(self) -> Path:
         return self.data_dir / "warehouse.duckdb"
 
