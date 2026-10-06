@@ -21,6 +21,14 @@ class Settings:
         return self.data_dir / "transformed"
 
     @property
+    def quality_dir(self) -> Path:
+        return self.data_dir / "quality"
+
+    @property
+    def logs_dir(self) -> Path:
+        return self.data_dir / "logs"
+
+    @property
     def warehouse_path(self) -> Path:
         return self.data_dir / "warehouse.duckdb"
 
